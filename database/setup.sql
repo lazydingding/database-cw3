@@ -28,11 +28,12 @@ CREATE TABLE Topic (
 );
 
 CREATE TABLE Post (
-   id INTEGER PRIMARY KEY,
+   id INTEGER NOT NULL,
    topic INTEGER REFERENCES Topic(id),
    author INTEGER REFERENCES Person(id),
    content TEXT NOT NULL,
-   created INTEGER NOT NULL
+   created INTEGER NOT NULL,
+   PRIMARY KEY(id, topic)
 );
 
 CREATE TABLE LikePost (
