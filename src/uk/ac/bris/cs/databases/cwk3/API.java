@@ -263,7 +263,7 @@ public class API implements APIProvider {
       List<ForumSummaryView> list = new LinkedList<>();
 
       try (PreparedStatement p = c.prepareStatement(
-      "SELECT id, title, tid, ttitle FROM Forum LEFT OUT JOIN " +
+      "SELECT id, title, tid, ttitle FROM Forum INNER JOIN " +
       "(SELECT id AS tid, title AS ttitle, forum, max(created) FROM Topic GROUP BY forum) " +
       "ON (forum = id) ORDER BY title ASC")) {
          ResultSet r = p.executeQuery();
