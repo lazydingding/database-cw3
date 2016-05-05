@@ -14,7 +14,6 @@ import uk.ac.bris.cs.databases.api.PersonView;
 import uk.ac.bris.cs.databases.api.SimpleForumSummaryView;
 import uk.ac.bris.cs.databases.api.SimpleTopicView;
 import uk.ac.bris.cs.databases.api.TopicView;
-
 import uk.ac.bris.cs.databases.api.SimplePostView;
 import uk.ac.bris.cs.databases.api.SimpleTopicSummaryView;
 import uk.ac.bris.cs.databases.api.TopicSummaryView;
@@ -262,23 +261,28 @@ public class API implements APIProvider {
     public Result<List<ForumSummaryView>> getForums() {
       if (c == null) { throw new IllegalStateException(); }
       List<ForumSummaryView> list = new LinkedList<>();
+      SimpleTopicSummaryView stsv = null;
 
-      try (PreparedStatement p = c.prepareStatement(
-      "SELECT id, title, tid, ttitle FROM Forum INNER JOIN " +
-      "(SELECT id AS tid, title AS ttitle, forum, max(created) FROM Topic GROUP BY forum) " +
-      "ON (forum = id) ORDER BY title ASC")) {
-         ResultSet r = p.executeQuery();
-         while (r.next()) {
-            SimpleTopicSummaryView stsv = new SimpleTopicSummaryView(r.getLong("tid"), r.getLong("id"), r.getString("ttitle"));
-            ForumSummaryView fsv = new ForumSummaryView(r.getLong("id"), r.getString("title"), stsv);
+      try (PreparedStatement p1 = c.prepareStatement(
+      "SELECT id, title FROM Forum")) {
+         ResultSet r1 = p1.executeQuery();
+         while (r1.next()) {
+            try (PreparedStatement p2 = c.prepareStatement(
+            "SELECT id, forum, title, max(created) FROM Topic WHERE forum = ? GROUP BY forum")) {
+               p2.setLong(1, r1.getLong("id"));
+               ResultSet r2 = p2.executeQuery();
+               if (r2.next()) {
+                  stsv = new SimpleTopicSummaryView(r2.getLong("id"), r2.getLong("forum"), r2.getString("title"));
+               }
+            }
+            ForumSummaryView fsv = new ForumSummaryView(r1.getLong("id"), r1.getString("title"), stsv);
             list.add(fsv);
          }
          return Result.success(list);
       } catch (SQLException e) {
-         //throw new RuntimeException(e);
          return Result.fatal("Something bad happened: " + e);
       }
-    }
+   }
     /**
      * Get the "main page" containing a list of forums ordered alphabetically
      * by title.
@@ -580,9 +584,6 @@ public class API implements APIProvider {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-
-     // @ Writen by Luping Yu
-     // Checked by Luping Yu
     @Override
     public Result<List<AdvancedForumSummaryView>> getAdvancedForums() {
       if (c == null) { throw new IllegalStateException(); }
@@ -617,8 +618,6 @@ public class API implements APIProvider {
      * @return the list of all forums.
      */
 
-     // @ Writen by Luping Yu
-     // Checked by Luping Yu
     @Override
     public Result<AdvancedPersonView> getAdvancedPersonView(String username) {
       if (c == null) { throw new IllegalStateException(); }
@@ -670,8 +669,6 @@ public class API implements APIProvider {
      *
      */
 
-     // @ Writen by Luping Yu
-     // Checked by Luping Yu
     @Override
     public Result<AdvancedForumView> getAdvancedForum(long id) {
       if (c == null) { throw new IllegalStateException(); }
