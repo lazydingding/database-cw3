@@ -19,21 +19,12 @@ CREATE TABLE Forum (
    title VARCHAR(100) NOT NULL
 );
 
-/*CREATE TABLE Topic (
+CREATE TABLE Topic (
    id INTEGER PRIMARY KEY,
    title VARCHAR(100) NOT NULL,
    forum INTEGER REFERENCES Forum(id),
    creator INTEGER REFERENCES Person(id),
    created INTEGER NOT NULL
-);*/
-
-CREATE TABLE Topic (
-        id INTEGER PRIMARY KEY,
-        title VARCHAR(100) NOT NULL,
-        topictext VARCHAR(200) NOT NUUL,
-        forum INTEGER REFERENCES Forum(id),
-        creator INTEGER REFERENCES Person(id),
-        created INTEGER NOT NULL
 );
 
 CREATE TABLE Post (
@@ -92,4 +83,5 @@ INSERT INTO LikeTopic (person, topic) VALUES (10001, 201);
 INSERT INTO LikeTopic (person, topic) VALUES (10002, 201);
 INSERT INTO LikeTopic (person, topic) VALUES (10001, 202);
 INSERT INTO FavTopic (person, topic) VALUES (10001, 201);
+INSERT INTO FavTopic (person, topic) VALUES (10001, 202);
 INSERT INTO FavTopic (person, topic) VALUES (10002, 202);

@@ -19,21 +19,12 @@ CREATE TABLE Forum (
    title VARCHAR(100) NOT NULL
 );
 
-/*CREATE TABLE Topic (
+CREATE TABLE Topic (
    id INTEGER PRIMARY KEY,
    title VARCHAR(100) NOT NULL,
    forum INTEGER REFERENCES Forum(id),
    creator INTEGER REFERENCES Person(id),
    created INTEGER NOT NULL
-);*/
-
-CREATE TABLE Topic (
-        id INTEGER PRIMARY KEY,
-        title VARCHAR(100) NOT NULL,
-        topictext VARCHAR(200) NOT NUUL,
-        forum INTEGER REFERENCES Forum(id),
-        creator INTEGER REFERENCES Person(id),
-        created INTEGER NOT NULL
 );
 
 CREATE TABLE Post (

@@ -17,6 +17,7 @@ import uk.ac.bris.cs.databases.api.TopicView;
 
 import uk.ac.bris.cs.databases.api.SimplePostView;
 import uk.ac.bris.cs.databases.api.SimpleTopicSummaryView;
+import uk.ac.bris.cs.databases.api.TopicSummaryView;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -404,7 +405,6 @@ public class API implements APIProvider {
                return Result.fatal("Something bad happened: " + e);
           }
 
-
           if(studentId==null) {
                final String SQL3 = "INSERT INTO person ( name,username) VALUES ( ?,?)";
                try (PreparedStatement p = c.prepareStatement(SQL3)) {
@@ -581,22 +581,140 @@ public class API implements APIProvider {
     }
 
 
+     // @ Writen by Luping Yu
+     // Checked by Luping Yu
     @Override
     public Result<List<AdvancedForumSummaryView>> getAdvancedForums() {
-        throw new UnsupportedOperationException("Not supported yet.");
+      if (c == null) { throw new IllegalStateException(); }
+      List<AdvancedForumSummaryView> list = new LinkedList<>();
+
+      try (PreparedStatement p = c.prepareStatement(
+      "SELECT Forum.id AS fid, Forum.title AS ftitle, Topic.id AS tid, " +
+      "Topic.title AS ttitle, created, ptime, pcount, pauthor, name, username " +
+      "FROM Forum LEFT OUTER JOIN Topic ON (forum = Forum.id) " +
+      "LEFT OUTER JOIN " +
+      "(SELECT topic AS ptopic, name AS pauthor, count(*) AS pcount, max(created) AS ptime " +
+      "FROM Post INNER JOIN Person ON (author = id) GROUP BY topic) " +
+      "ON (Topic.id = ptopic) INNER JOIN Person ON (creator = Person.id)")) {
+         ResultSet r = p.executeQuery();
+         while (r.next()) {
+            TopicSummaryView tsv = new TopicSummaryView(r.getLong("tid"),
+            r.getLong("fid"), r.getString("ttitle"), r.getInt("pcount"),
+            r.getInt("created"), r.getInt("ptime"), r.getString("pauthor"),
+            likeTopic(r.getLong("tid")), r.getString("name"), r.getString("username"));
+            AdvancedForumSummaryView afsv = new AdvancedForumSummaryView(r.getLong("fid"),
+            r.getString("ftitle"), tsv);
+            list.add(afsv);
+         }
+         return Result.success(list);
+      } catch (SQLException e) {
+         return Result.fatal("Something bad happened: " + e);
+      }
     }
+    /**
+     * Get the "main page" containing a list of forums ordered alphabetically
+     * by title. Advanced version.
+     * @return the list of all forums.
+     */
 
-
+     // @ Writen by Luping Yu
+     // Checked by Luping Yu
     @Override
     public Result<AdvancedPersonView> getAdvancedPersonView(String username) {
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+      if (c == null) { throw new IllegalStateException(); }
+      if (username == null || username.equals("")) {
+         return Result.failure("Need a valid username");
+      }
 
+      List<TopicSummaryView> list = new LinkedList<>();
 
+      try (PreparedStatement p1 = c.prepareStatement(
+      "SELECT id, name, username, stuId FROM Person WHERE username = ?")) {
+         p1.setString(1, username);
+         ResultSet r1 = p1.executeQuery();
+         if (r1.next()) {
+            try (PreparedStatement p2 = c.prepareStatement(
+            "SELECT Topic.id AS tid, forum, title, created, ptime, pcount, pauthor, name AS pname, username AS pusername " +
+            "FROM FavTopic INNER JOIN Topic ON (topic = Topic.id) LEFT OUTER JOIN " +
+            "(SELECT topic AS ptopic, name AS pauthor, count(*) AS pcount, max(created) AS ptime " +
+            "FROM Post INNER JOIN Person ON (author = id) GROUP BY topic) " +
+            "ON (Topic.id = ptopic) INNER JOIN Person ON (creator = Person.id) WHERE person = ?")) {
+               p2.setLong(1, r1.getLong("id"));
+               ResultSet r2 = p2.executeQuery();
+               while (r2.next()) {
+                  TopicSummaryView tsv = new TopicSummaryView(r2.getLong("tid"),
+                  r2.getLong("forum"), r2.getString("title"), r2.getInt("pcount"),
+                  r2.getInt("created"), r2.getInt("ptime"), r2.getString("pauthor"),
+                  likeTopic(r2.getLong("tid")), r2.getString("pname"), r2.getString("pusername"));
+                  list.add(tsv);
+               }
+               AdvancedPersonView apv = new AdvancedPersonView(r1.getString("name"),
+               r1.getString("username"), r1.getString("stuId"),
+               likesCount_P(r1.getLong("id"), "Topic"), likesCount_P(r1.getLong("id"), "Post"),
+               list);
+               return Result.success(apv);
+            } catch (SQLException e) {
+               return Result.fatal("Something bad happened: " + e);
+            }
+         }
+         else return Result.failure("No user with this username");
+      }catch (SQLException e) {
+         return Result.fatal("Something bad happened: " + e);
+      }
+   }
+    /**
+     * Get an AdvancedPersonView for the person with the given username.
+     * @param username - the username to search for, cannot be empty.
+     * @return If a person with the given username exists, a fully populated
+     * AdvancedPersonView. Otherwise, failure (or fatal on a database error).
+     *
+     */
+
+     // @ Writen by Luping Yu
+     // Checked by Luping Yu
     @Override
     public Result<AdvancedForumView> getAdvancedForum(long id) {
-        throw new UnsupportedOperationException("Not supported yet.");
+      if (c == null) { throw new IllegalStateException(); }
+
+      List<TopicSummaryView> list = new LinkedList<>();
+
+      try (PreparedStatement p1 = c.prepareStatement(
+      "SELECT id, title FROM Forum WHERE id = ?")) {
+         p1.setLong(1, id);
+         ResultSet r1 = p1.executeQuery();
+         if (r1.next()) {
+            try (PreparedStatement p2 = c.prepareStatement(
+            "SELECT Topic.id AS tid, forum, title, created, ptime, pcount, pauthor, name AS pname, username AS pusername FROM " +
+            "Topic LEFT OUTER JOIN " +
+            "(SELECT topic AS ptopic, name AS pauthor, count(*) AS pcount, max(created) AS ptime " +
+            "FROM Post INNER JOIN Person ON (author = id) GROUP BY topic) " +
+            "ON (Topic.id = ptopic) INNER JOIN Person ON (creator = Person.id) WHERE forum = ?")) {
+               p2.setLong(1, r1.getLong("id"));
+               ResultSet r2 = p2.executeQuery();
+               while (r2.next()) {
+                  TopicSummaryView tsv = new TopicSummaryView(r2.getLong("tid"),
+                  r2.getLong("forum"), r2.getString("title"), r2.getInt("pcount"),
+                  r2.getInt("created"), r2.getInt("ptime"), r2.getString("pauthor"),
+                  likeTopic(r2.getLong("tid")), r2.getString("pname"), r2.getString("pusername"));
+                  list.add(tsv);
+               }
+               AdvancedForumView afv = new AdvancedForumView(r1.getLong("id"),
+               r1.getString("title"), list);
+               return Result.success(afv);
+            } catch (SQLException e) {
+               return Result.fatal("Something bad happened: " + e);
+            }
+         }
+         else return Result.failure("No forum with this id");
+      }catch (SQLException e) {
+         return Result.fatal("Something bad happened: " + e);
+      }
     }
+    /**
+     * Get the detailed view of a single forum, advanced version.
+     * @param id - the id of the forum to get.
+     * @return A view of this forum if it exists, otherwise failure.
+     */
 
 
     @Override
@@ -628,5 +746,33 @@ public class API implements APIProvider {
          else return 0;
       } catch (SQLException e) {return 0;}
    }
+
+   private int likesCount_P(long personId, String tablename) {
+      String sql;
+      if (tablename.equals("Topic")) {
+            sql = "SELECT count(*) AS likes FROM LikeTopic WHERE person = ?";
+      }
+      else {
+         sql = "SELECT count(*) AS likes FROM LikePost WHERE person = ?";
+      }
+
+      try (PreparedStatement p = c.prepareStatement(sql)) {
+         p.setLong(1, personId);
+         ResultSet r = p.executeQuery();
+         if (r.next()) return r.getInt("likes");
+         else return 0;
+      } catch (SQLException e) {return 0;}
+   }
+
+   private int likeTopic(long topicId) {
+      try (PreparedStatement p = c.prepareStatement(
+      "SELECT count(*) AS likes FROM LikeTopic WHERE topic = ?")) {
+         p.setLong(1, topicId);
+         ResultSet r = p.executeQuery();
+         if (r.next()) return r.getInt("likes");
+         else return 0;
+      } catch (SQLException e) {return 0;}
+   }
+
 
    }
