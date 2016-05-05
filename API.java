@@ -670,17 +670,46 @@ public class API implements APIProvider {
 
     @Override
     public Result<AdvancedForumView> getAdvancedForum(long id) {
-        throw new UnsupportedOperationException("Not supported yet.");
+      if (c == null) { throw new IllegalStateException(); }
+
+      List<TopicSummaryView> list = new LinkedList<>();
+
+      try (PreparedStatement p1 = c.prepareStatement(
+      "SELECT id, title FROM Forum WHERE id = ?")) {
+         p1.setLong(1, id);
+         ResultSet r1 = p1.executeQuery();
+         if (r1.next()) {
+            try (PreparedStatement p2 = c.prepareStatement(
+            "SELECT Topic.id AS tid, forum, title, created, ptime, pcount, pauthor, name AS pname, username AS pusername FROM " +
+            "Topic LEFT OUTER JOIN " +
+            "(SELECT topic AS ptopic, name AS pauthor, count(*) AS pcount, max(created) AS ptime " +
+            "FROM Post INNER JOIN Person ON (author = id) GROUP BY topic) " +
+            "ON (Topic.id = ptopic) INNER JOIN Person ON (creator = Person.id) WHERE forum = ?")) {
+               p2.setLong(1, r1.getLong("id"));
+               ResultSet r2 = p2.executeQuery();
+               while (r2.next()) {
+                  TopicSummaryView tsv = new TopicSummaryView(r2.getLong("tid"),
+                  r2.getLong("forum"), r2.getString("title"), r2.getInt("pcount"),
+                  r2.getInt("created"), r2.getInt("ptime"), r2.getString("pauthor"),
+                  likeTopic(r2.getLong("tid")), r2.getString("pname"), r2.getString("pusername"));
+                  list.add(tsv);
+               }
+               AdvancedForumView afv = new AdvancedForumView(r1.getLong("id"),
+               r1.getString("title"), list);
+               return Result.success(afv);
+            } catch (SQLException e) {
+               return Result.fatal("Something bad happened: " + e);
+            }
+         }
+         else return Result.failure("No forum with this id");
+      }catch (SQLException e) {
+         return Result.fatal("Something bad happened: " + e);
+      }
     }
     /**
-     * Like or unlike a post. Liking a post that you have already liked
-     * (or unliking a post you haven't liked) is a no-op, not an error.
-     * @param username - the person liking/unliking the post. Must exist.
-     * @param topicId - the topic with the post to (un)like. Must exist.
-     * @param post - the index of the post to (un)like. Must exist.
-     * @param like - true to like, false to unlike.
-     * @return failure if the person or post referenced to not exist,
-     * success if the (un)like succeeded, fatal in case of other errors.
+     * Get the detailed view of a single forum, advanced version.
+     * @param id - the id of the forum to get.
+     * @return A view of this forum if it exists, otherwise failure.
      */
 
 
