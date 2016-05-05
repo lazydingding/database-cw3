@@ -22,6 +22,7 @@ CREATE TABLE Forum (
 CREATE TABLE Topic (
    id INTEGER PRIMARY KEY,
    title VARCHAR(100) NOT NULL,
+   topictext VARCHAR(200) NOT NULL,
    forum INTEGER REFERENCES Forum(id),
    creator INTEGER REFERENCES Person(id),
    created INTEGER NOT NULL
@@ -59,9 +60,9 @@ INSERT INTO Person (id, name, username, stuId) VALUES (10003, 'Fan Zhao', 'Emma'
 INSERT INTO Forum (id, title) VALUES (101, 'Database');
 INSERT INTO Forum (id, title) VALUES (102, 'Java');
 INSERT INTO Forum (id, title) VALUES (103, 'Research Skills');
-INSERT INTO Topic (id, title, forum, creator, created) VALUES (201, 'Course Work 1', 101, 10001, 1315);
-INSERT INTO Topic (id, title, forum, creator, created) VALUES (202, 'Course Work 2', 101, 10002, 1430);
-INSERT INTO Topic (id, title, forum, creator, created) VALUES (203, 'Java Swing', 102, 10003, 1545);
+INSERT INTO Topic (id, title, topictext, forum, creator, created) VALUES (201, 'Course Work 1', 'Hello world', 101, 10001, 1315);
+INSERT INTO Topic (id, title, topictext, forum, creator, created) VALUES (202, 'Course Work 2', 'Hello world', 101, 10002, 1430);
+INSERT INTO Topic (id, title, topictext, forum, creator, created) VALUES (203, 'Java Swing', 'Hello world', 102, 10003, 1545);
 INSERT INTO Post (num, topic, author, content, created) VALUES (1, 201, 10001, 'May I ask you a question?', 1807);
 INSERT INTO Post (num, topic, author, content, created) VALUES (2, 201, 10001, 'Of course you can.', 1808);
 INSERT INTO Post (num, topic, author, content, created) VALUES (3, 201, 10003, 'Cool!', 1809);
@@ -83,4 +84,5 @@ INSERT INTO LikeTopic (person, topic) VALUES (10001, 201);
 INSERT INTO LikeTopic (person, topic) VALUES (10002, 201);
 INSERT INTO LikeTopic (person, topic) VALUES (10001, 202);
 INSERT INTO FavTopic (person, topic) VALUES (10001, 201);
+INSERT INTO FavTopic (person, topic) VALUES (10001, 202);
 INSERT INTO FavTopic (person, topic) VALUES (10002, 202);
