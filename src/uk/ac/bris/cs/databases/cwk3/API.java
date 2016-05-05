@@ -666,15 +666,22 @@ public class API implements APIProvider {
     public Result favouriteTopic(String username, long topicId, boolean fav) {
       throw new UnsupportedOperationException("Not supported yet.");
     }
-    /**
-     * Set or unset a topic as favourite. Same semantics as likeTopic.
-     * @param username - the person setting the favourite topic (must exist).
-     * @param topicId - the topic to set as favourite (must exist).
-     * @param fav - true to set, false to unset as favourite.
-     * @return success (even if it was a no-op), failure if the person or topic
-     * does not exist and fatal in case of db errors.
+    /*
+     * Level 3 - more complex queries. Leave these until last.
      */
 
+    /**
+     * Create a new topic in a forum.
+     * @param forumId - the id of the forum in which to create the topic. This
+     * forum must exist.
+     * @param username - the username under which to make this post. Must refer
+     * to an existing username.
+     * @param title - the title of this topic. Cannot be empty.
+     * @param text - the text of the initial post. Cannot be empty.
+     * @return failure if any of the preconditions are not met (forum does not
+     * exist, user does not exist, title or text empty);
+     * success if the post was created and fatal if something else went wrong.
+     */
      // @ Written by Fan Zhao
      // Checked by Fan Zhao: Correct
     @Override
@@ -698,7 +705,6 @@ public class API implements APIProvider {
         }
 /*
 ** modified Topic TABLE:
-
         CREATE TABLE Topic (
                 id INTEGER PRIMARY KEY,
                 title VARCHAR(100) NOT NULL,
