@@ -257,7 +257,7 @@ public class API implements APIProvider {
 
      // @ Written by Luping Yu
      // First Checked by Luping Yu: Correct
-     //changed INNER JOIN to LEFT OUT JOIN
+     //changed INNER JOIN to LEFT JOIN
     @Override
     public Result<List<ForumSummaryView>> getForums() {
       if (c == null) { throw new IllegalStateException(); }
@@ -591,7 +591,7 @@ public class API implements APIProvider {
 
      // @ Written by Luping Yu
      // First Checked by Luping Yu: Correct
-     // change INNER JOIN to LEFT OUT JOIN
+     // change INNER JOIN to LEFT JOIN
     @Override
     public Result<TopicView> getTopic(long topicId, int page) {
       if (c == null) { throw new IllegalStateException(); }
@@ -599,7 +599,7 @@ public class API implements APIProvider {
 
       try (PreparedStatement p1 = c.prepareStatement(
       "SELECT forum, Forum.title AS ftitle, Topic.title AS ttitle " +
-      "FROM Topic LEFT OUT JOIN Forum ON (forum = Forum.id) WHERE Topic.id = ?")) {
+      "FROM Topic LEFT JOIN Forum ON (forum = Forum.id) WHERE Topic.id = ?")) {
          p1.setLong(1, topicId);
          ResultSet r1 = p1.executeQuery();
          if (r1.next()) {
@@ -645,10 +645,48 @@ public class API implements APIProvider {
 
 
      // @ Written by Khas
-    @Override
-    public Result likeTopic(String username, long topicId, boolean like) {
-      throw new UnsupportedOperationException("Not supported yet.");
-    }
+     @Override
+     public Result likeTopic(String username, long topicId, boolean like) {
+         if (c == null) {
+             throw new IllegalStateException();
+         }
+         if (!existTable(topicId)) return Result.failure("No topic with this id");
+         if(!getPersonView(username).isSuccess()) return Result.failure("No user with this username");
+         if (like) {
+             try (PreparedStatement p = c.prepareStatement("INSERT OR IGNORE INTO LikeTopic(person,topic) Values(?, ?)")) {
+                 p.setLong(2, topicId);
+                 p.setString(1, username);
+                 p.execute();
+                 c.commit();
+             }
+             catch (SQLException e) {
+                 try {
+                     c.rollback();
+                 } catch (SQLException e1) {
+                     return Result.fatal("Error near rollback");
+                 }
+                 return Result.fatal("Something bad happened: " + e);
+             }
+         }
+         else{
+             try (PreparedStatement p = c.prepareStatement("DELETE FROM LikeTopic WHERE person=? and topic=?")) {
+                 p.setLong(2, topicId);
+                 p.setString(1, username);
+                  p.execute();
+                 c.commit();
+             }
+             catch (SQLException e) {
+                 try {
+                     c.rollback();
+                 } catch (SQLException e1) {
+                     return Result.fatal("Error near rollback");
+                 }
+                 return Result.fatal("Something bad happened: " + e);
+             }
+         }
+         return Result.success();
+     }
+
     /**
      * Like or unlike a topic. A topic is either liked or not, when calling this
      * twice in a row with the same parameters, the second call is a no-op (this
@@ -662,19 +700,64 @@ public class API implements APIProvider {
 
 
      // @ Written by Khas
-    @Override
-    public Result favouriteTopic(String username, long topicId, boolean fav) {
-      throw new UnsupportedOperationException("Not supported yet.");
-    }
-    /**
-     * Set or unset a topic as favourite. Same semantics as likeTopic.
-     * @param username - the person setting the favourite topic (must exist).
-     * @param topicId - the topic to set as favourite (must exist).
-     * @param fav - true to set, false to unset as favourite.
-     * @return success (even if it was a no-op), failure if the person or topic
-     * does not exist and fatal in case of db errors.
+     @Override
+      public Result favouriteTopic(String username, long topicId, boolean fav) {
+              if (c == null) {
+                  throw new IllegalStateException();
+              }
+              if (!existTable(topicId)) return Result.failure("No topic with this id");
+              if(!getPersonView(username).isSuccess()) return Result.failure("No user with this username");
+              if (fav) {
+                  try (PreparedStatement p = c.prepareStatement("INSERT OR IGNORE INTO FavTopic(person,topic) Values(?, ?)")) {
+                      p.setLong(2, topicId);
+                      p.setString(1, username);
+                      p.execute();
+                      c.commit();
+                  }
+                  catch (SQLException e) {
+                      try {
+                          c.rollback();
+                      } catch (SQLException e1) {
+                          return Result.fatal("Error near rollback");
+                      }
+                      return Result.fatal("Something bad happened: " + e);
+                  }
+              }
+              else{
+                  try (PreparedStatement p = c.prepareStatement("DELETE FROM FavTopic WHERE person=? and topic=?")) {
+                      p.setLong(2, topicId);
+                      p.setString(1, username);
+                      p.execute();
+                      c.commit();
+                  }
+                  catch (SQLException e) {
+                      try {
+                          c.rollback();
+                      } catch (SQLException e1) {
+                          return Result.fatal("Error near rollback");
+                      }
+                      return Result.fatal("Something bad happened: " + e);
+                  }
+              }
+              return Result.success();
+          }
+  
+    /*
+     * Level 3 - more complex queries. Leave these until last.
      */
 
+    /**
+     * Create a new topic in a forum.
+     * @param forumId - the id of the forum in which to create the topic. This
+     * forum must exist.
+     * @param username - the username under which to make this post. Must refer
+     * to an existing username.
+     * @param title - the title of this topic. Cannot be empty.
+     * @param text - the text of the initial post. Cannot be empty.
+     * @return failure if any of the preconditions are not met (forum does not
+     * exist, user does not exist, title or text empty);
+     * success if the post was created and fatal if something else went wrong.
+     */
      // @ Written by Fan Zhao
      // Checked by Fan Zhao: Correct
     @Override
@@ -698,7 +781,6 @@ public class API implements APIProvider {
         }
 /*
 ** modified Topic TABLE:
-
         CREATE TABLE Topic (
                 id INTEGER PRIMARY KEY,
                 title VARCHAR(100) NOT NULL,
@@ -750,16 +832,15 @@ public class API implements APIProvider {
         "ON inPost1.topic=topic.id "+
         "LEFT JOIN ( select post.topic as lastTopic,post.author as lastAuthor,post.created as lastCreated "+
         "from post "+
-        "inner join (SELECT Max(Post.created) as created, Post.topic as topic "+
+        "INNER JOIN (SELECT Max(Post.created) as created, Post.topic as topic "+
         "FROM Post "+
-        "INNER JOIN Topic ON post.topic=topic.id "+
+        "INNER JOIN Topic ON Post.topic=Topic.id "+
         "INNER JOIN Person ON Person.id=Post.author "+
         "group by Post.topic) inPost "+
         "on post.created=inPost.created and post.topic=inPost.topic) lastPost "+
         "ON lastPost.lastTopic=topic.id "+
         "INNER JOIN Person ON Person.id=topic.creator "+
-        "order by Topic.title"
-        ;
+        "order by Topic.title";
         List<AdvancedForumSummaryView> list=  new LinkedList<>();
         try (PreparedStatement p = c.prepareStatement(strSQL)) {
             ResultSet r = p.executeQuery();
@@ -774,20 +855,17 @@ public class API implements APIProvider {
                 list.add(viewForum);
             };
 
-
             if(list.size()==0)
                 return Result.failure(" list is empty");
 
             else {
                 return Result.success(list);
             }
-
         }
         catch(SQLException e){
             throw new RuntimeException("Something bad happened: " + e);
            //Result.fatal("Something bad happened: " + e);
         }
-
     }
 
 
