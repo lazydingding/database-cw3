@@ -54,7 +54,7 @@ public class API implements APIProvider {
     }
 
 
-     // @ Written by Emma
+     // @ Written by Fan Zhao
      // First Checked by Luping Yu: Correct
     @Override
     public Result<PersonView> getPersonView(String username) {
@@ -79,7 +79,7 @@ public class API implements APIProvider {
     }
 
 
-   // @ Written by Khas
+   // @ Written by Khas_Ochir Sod-Erdene
    // First Checked by Luping Yu: Correct
     @Override
     public Result<List<SimpleForumSummaryView>> getSimpleForums() {
@@ -103,7 +103,7 @@ public class API implements APIProvider {
     }
 
 
-     // @ Written by Khas
+     // @ Written by Khas_Ochir Sod-Erdene
      // First Checked by Luping Yu: SQL Correct
     @Override
     public Result<Integer> countPostsInTopic(long topicId) {
@@ -279,46 +279,46 @@ public class API implements APIProvider {
 
      // @ Written by Fan Zhao
      // Checked by Fan Zhao: Correct
-      @Override
-      public Result createPost(long topicId, String username, String text) {
-        if (text == null || text.equals("")) {
-        return Result.failure("Need a valid text");
-       }
-          Result<Boolean> result=existATopic((int)topicId);
-          if(!result.isSuccess())
-              return result;
-          if(!result.getValue().booleanValue())
-              return Result.failure("topic does not exist!");
-          result=existAPerson(username);
-          if(!result.isSuccess() )
-              return result;
-          if(!result.getValue().booleanValue())
-              return Result.failure("username does not exist!");
-          Result<Integer> count= countPostsInTopic_2((int)topicId);
-          if(!count.isSuccess())
-             return count;
-       final String SQL3 = "INSERT INTO post( num,topic,author,content,created) VALUES ( ?,?,?,?,?)";
-       try (PreparedStatement p = c.prepareStatement(SQL3)) {
-           int num=count.getValue().intValue();
-             p.setInt(1,++num);
-             p.setInt(2, (int)topicId);
-             p.setString(3,username);
-             p.setString(4,text);
-             java.util.Date date=new java.util.Date();
-             p.setInt(5,(int)date.getTime());
-             int iResult = p.executeUpdate();
-             if (iResult==0) {
-                return Result.failure("Can not insert a post!");
-             }
-             else {
-                 c.commit();
-                return Result.success();
-             }
-       } catch (SQLException e) {
-             return Result.fatal("Something bad happened: " + e);
-       }
-      }
-
+    @Override
+    public Result createPost(long topicId, String username, String text) {
+      if (text == null || text.equals("")) {
+      return Result.failure("Need a valid text");
+     }
+        Result<Boolean> result=existATopic((int)topicId);
+        if(!result.isSuccess())
+            return result;
+        if(!result.getValue().booleanValue())
+            return Result.failure("topic does not exist!");
+        result=existAPerson(username);
+        if(!result.isSuccess() )
+            return result;
+        if(!result.getValue().booleanValue())
+            return Result.failure("username does not exist!");
+        Result<Integer> count= countPostsInTopic_2((int)topicId);
+        if(!count.isSuccess())
+           return count;
+        final String SQL3 = "INSERT INTO post( num,topic,author,content,created) select ?,?, id ,?, ? from person where person.username=?";
+     try (PreparedStatement p = c.prepareStatement(SQL3)) {
+         int num=count.getValue().intValue();
+           p.setInt(1,++num);
+           p.setInt(2, (int)topicId);
+           p.setString(3,text);
+          // the count of ms since 1970-1-1 0:0:0
+           java.util.Date date=new java.util.Date();
+           p.setLong(4,date.getTime());
+           p.setString(5,username);
+           int iResult = p.executeUpdate();
+           if (iResult==0) {
+              return Result.failure("Can not insert a post!");
+           }
+           else {
+               c.commit();
+              return Result.success();
+           }
+     } catch (SQLException e) {
+           return Result.fatal("Something bad happened: " + e);
+     }
+    }
 
      // @ Written by Fan Zhao
      // Checked by Fan Zhao: Correct
@@ -453,7 +453,7 @@ public class API implements APIProvider {
     }
 
 
-     // @ Written by Khas
+     // @ Written by Khas_Ochir Sod-Erdene
      @Override
      public Result likeTopic(String username, long topicId, boolean like) {
          if (c == null) {
@@ -497,7 +497,7 @@ public class API implements APIProvider {
      }
 
 
-     // @ Written by Khas
+     // @ Written by Khas_Ochir Sod-Erdene
      @Override
       public Result favouriteTopic(String username, long topicId, boolean fav) {
               if (c == null) {
@@ -543,76 +543,97 @@ public class API implements APIProvider {
 
      // @ Written by Fan Zhao
      // Checked by Fan Zhao: Correct
-    @Override
-    public Result createTopic(long forumId, String username, String title, String text) {
-        Result<Boolean> result=existAPerson(username);
-        if(!result.isSuccess())
-            return result;
-        if(!result.getValue().booleanValue())
-            return Result.failure(" can not find username!");
-        result=existAForum((int)forumId);
-        if(!result.isSuccess())
-            return result;
-        if( !result.getValue().booleanValue())
-            return Result.failure(" can not find forumId!");
-        if (title == null || title.equals("")) {
-            return Result.failure("title should not be empty");
-        }
-        if (text == null || text.equals("")) {
-            return Result.failure("text should not be empty");
-        }
-        final String SQL3 = "INSERT INTO Topic ( title, topictext ,forum,creator, created) VALUES ( ?,?,?,?,?)";
-        try (PreparedStatement p = c.prepareStatement(SQL3)) {
-            p.setString(1, title);
-            p.setString(2, text);
-            p.setInt(3, (int)forumId);
-            p.setString(4,username);
-            java.util.Date date=new java.util.Date();
-            p.setInt(5,(int)date.getTime());
-            int iResult = p.executeUpdate();
-            if (iResult == 0) {
-                return Result.failure("Can not insert a Topic!");
-            } else {
-                c.commit();
-                return Result.success();
-            }
-        } catch (SQLException e) {
-            return Result.fatal("Something bad happened: " + e);
-        }
-    }
+     @Override
+     public Result createTopic(long forumId, String username, String title, String text) {
+
+         Result<Boolean> result=existAPerson(username);
+         if(!result.isSuccess())
+             return result;
+         if(!result.getValue().booleanValue())
+             return Result.failure(" can not find username!");
+         result=existAForum((int)forumId);
+         if(!result.isSuccess())
+             return result;
+         if( !result.getValue().booleanValue())
+             return Result.failure(" can not find forumId!");
+         if (title == null || title.equals("")) {
+             return Result.failure("title should not be empty");
+         }
+         if (text == null || text.equals("")) {
+             return Result.failure("text should not be empty");
+         }
+
+         final String SQL3 = "INSERT INTO Topic ( title, topictext ,forum,creator, created) VALUES ( ?,?,?,?,?)";
+         try (PreparedStatement p = c.prepareStatement(SQL3)) {
+             p.setString(1, title);
+             p.setString(2, text);
+             p.setInt(3, (int)forumId);
+             p.setString(4,username);
+             java.util.Date date=new java.util.Date();
+             p.setInt(5,(int)date.getTime());
+             int iResult = p.executeUpdate();
+             if (iResult == 0) {
+                 return Result.failure("Can not insert a Topic!");
+             } else {
+                 c.commit();
+                 return Result.success();
+             }
+         } catch (SQLException e) {
+             return Result.fatal("Something bad happened: " + e);
+         }
+     }
 
 
      // @ Written by Fan Zhao
-     // @ Reconstructed by Luping Yu
-    @Override
-    public Result<List<AdvancedForumSummaryView>> getAdvancedForums() {
-      if (c == null) { throw new IllegalStateException(); }
-      List<AdvancedForumSummaryView> list = new LinkedList<>();
+     // @ correct by Fan Zhao
+     @Override
+      public Result<List<AdvancedForumSummaryView>> getAdvancedForums() {
 
-      try (PreparedStatement p = c.prepareStatement(
-      "SELECT Forum.id AS fid, Forum.title AS ftitle, Topic.id AS tid, " +
-      "Topic.title AS ttitle, created, ptime, pcount, pauthor, name, username " +
-      "FROM Forum LEFT OUTER JOIN Topic ON (forum = Forum.id) " +
-      "LEFT OUTER JOIN " +
-      "(SELECT topic AS ptopic, name AS pauthor, count(*) AS pcount, max(created) AS ptime " +
-      "FROM Post INNER JOIN Person ON (author = id) GROUP BY topic) " +
-      "ON (Topic.id = ptopic) INNER JOIN Person ON (creator = Person.id)")) {
-         ResultSet r = p.executeQuery();
-         while (r.next()) {
-            TopicSummaryView tsv = new TopicSummaryView(r.getLong("tid"),
-            r.getLong("fid"), r.getString("ttitle"), r.getInt("pcount"),
-            r.getInt("created"), r.getInt("ptime"), r.getString("pauthor"),
-            likesCount(r.getLong("tid"), "Topic"), r.getString("name"), r.getString("username"));
-            AdvancedForumSummaryView afsv = new AdvancedForumSummaryView(r.getLong("fid"),
-            r.getString("ftitle"), tsv);
-            list.add(afsv);
-         }
-         return Result.success(list);
-      } catch (SQLException e) {
-         return Result.fatal("Something bad happened: " + e);
+          final String strSQL="SELECT Topic.id as topicId, forum.id as forumId, forum.title as forumTitle, Topic.title as [title]," +
+                  "        lastPost.countPost as postCount,Topic.created as created,  inLikes.likes as likes,  Person.name as creatorName," +
+                  "        Person.username as creatorUserName, lastPost.lastCreated as lastPostTime,lastPost.lastAuthor as lastPostName " +
+                  "FROM Topic " +
+                  "INNER JOIN Forum ON Forum.id= Topic.forum " +
+                  "LEFT JOIN ( SELECT COUNT(person) as likes,topic FROM LikeTopic group by topic ) inLikes ON inlikes.topic =topic.id " +
+                  "LEFT JOIN ( SELECT post.topic as lastTopic,person.username as lastAuthor,inPost.countPost as countPost,post.created as lastCreated " +
+                  "            FROM post  " +
+                  "            INNER JOIN ( SELECT Max(Post.created) as created, COUNT(*) as countPost,Post.topic as topic " +
+                  "            FROM Post INNER JOIN Topic ON post.topic=topic.id group by Post.topic) inPost " +
+                  "            ON post.created=inPost.created and post.topic=inPost.topic " +
+                  "            INNER JOIN Person ON Person.id=Post.author) lastPost " +
+                  "ON lastPost.lastTopic=topic.id " +
+                  "INNER JOIN Person ON Person.id=topic.creator " +
+                  "order by Topic.title";
+
+          List<AdvancedForumSummaryView> list=  new LinkedList<>();
+          try (PreparedStatement p = c.prepareStatement(strSQL)) {
+              ResultSet r = p.executeQuery();
+              while (r.next()) {
+                  TopicSummaryView view= new TopicSummaryView(
+                          r.getLong("topicId"), r.getLong("forumId"), r.getString("title") ,
+                          r.getInt("postCount"),r.getInt("created"), r.getInt("lastPostTime"),
+                          r.getString("lastPostName"), r.getInt("likes"),r.getString("creatorName"),
+                          r.getString("creatorUserName"));
+                  AdvancedForumSummaryView viewForum=new AdvancedForumSummaryView(r.getLong("forumId"),
+                          r.getString("forumTitle") ,view);
+                  list.add(viewForum);
+              };
+
+
+              if(list.size()==0)
+                  return Result.failure(" list is empty");
+
+              else {
+                  return Result.success(list);
+              }
+
+          }
+          catch(SQLException e){
+              throw new RuntimeException("Something bad happened: " + e);
+             //Result.fatal("Something bad happened: " + e);
+          }
+
       }
-    }
-
 
      // @ Written by Luping Yu
      // Checked by Luping Yu
@@ -701,7 +722,7 @@ public class API implements APIProvider {
     }
 
 
-    // @ Written by Khas
+    // @ Written by Khas_Ochir Sod-Erdene
     @Override
     public Result likePost(String username, long topicId, int post, boolean like) {
               if (c == null) {
