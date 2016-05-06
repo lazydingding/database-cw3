@@ -634,9 +634,42 @@ public class API implements APIProvider {
           }
 
       }
+      
+    // @ Written by Luping Yu
+    // I implemented this method by my own way. Personally I think it's a simplify method to achieve the function required.
+    /*
+    @Override
+    public Result<List<AdvancedForumSummaryView>> getAdvancedForums() {
+      if (c == null) { throw new IllegalStateException(); }
+      List<AdvancedForumSummaryView> list = new LinkedList<>();
+
+      try (PreparedStatement p = c.prepareStatement(
+      "SELECT Forum.id AS fid, Forum.title AS ftitle, Topic.id AS tid, " +
+      "Topic.title AS ttitle, created, max(ptime) as ptime, pcount, pauthor, name, username " +
+      "FROM Forum LEFT OUTER JOIN Topic ON (forum = Forum.id) " +
+      "LEFT OUTER JOIN " +
+      "(SELECT topic AS ptopic, name AS pauthor, count(*) AS pcount, max(created) AS ptime " +
+      "FROM Post INNER JOIN Person ON (author = id) GROUP BY topic) " +
+      "ON (Topic.id = ptopic) INNER JOIN Person ON (creator = Person.id) GROUP BY Forum.id")) {
+         ResultSet r = p.executeQuery();
+         while (r.next()) {
+            TopicSummaryView tsv = new TopicSummaryView(r.getLong("tid"),
+            r.getLong("fid"), r.getString("ttitle"), r.getInt("pcount"),
+            r.getInt("created"), r.getInt("ptime"), r.getString("pauthor"),
+            likesCount(r.getLong("tid"), "Topic"), r.getString("name"), r.getString("username"));
+            AdvancedForumSummaryView afsv = new AdvancedForumSummaryView(r.getLong("fid"),
+            r.getString("ftitle"), tsv);
+            list.add(afsv);
+         }
+         return Result.success(list);
+      } catch (SQLException e) {
+         return Result.fatal("Something bad happened: " + e);
+      }
+    }
+    */
+
 
      // @ Written by Luping Yu
-     // Checked by Luping Yu
     @Override
     public Result<AdvancedPersonView> getAdvancedPersonView(String username) {
       if (c == null) { throw new IllegalStateException(); }
@@ -682,7 +715,6 @@ public class API implements APIProvider {
 
 
    // @ Written by Luping Yu
-   // Checked by Luping Yu
     @Override
     public Result<AdvancedForumView> getAdvancedForum(long id) {
       if (c == null) { throw new IllegalStateException(); }
