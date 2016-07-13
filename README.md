@@ -1,2 +1,3 @@
 # database-cw3
-Group coursework
+
+SQLITE3 + JDBC
