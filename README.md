@@ -1,3 +1,3 @@
 # database-cw3
 
-SQLITE3 + JDBC
+SQLite3 + JDBC
